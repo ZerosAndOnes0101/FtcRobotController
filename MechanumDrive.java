@@ -8,7 +8,7 @@ import android.os.Bundle;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -29,25 +29,26 @@ public class MechanumDrive extends EncoderTest2 {
     public DcMotor rightBackDrive = null;
     public DcMotor leftDrive = null;
     public DcMotor rightDrive = null;
-    public CRServo Trin = null;
-    public CRServo Trin1 = null;
+    public DcMotor intake =null;
+    public Servo Trin = null;
+    public Servo Trin1 = null;
     private boolean isAOn = false;
     private double slowModeValue = 1.0;
-
+    public DcMotor shaft = null;
+public DcMotor arm = null;
+    public Servo claw =null;
     @Override
     public void runOpMode() {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
-
+        claw = hardwareMap.servo.get("claw");
         player1 = MediaPlayer.create(hardwareMap.appContext, R.raw.song);
-        //  x = hardwareMap.get(DistanceSensor.class,"distance");
+        x = hardwareMap.get(DistanceSensor.class,"distance");
         //   x1 = hardwareMap.get(DistanceSensor.class, "distance1");
         //  Rev2mDistanceSensor sensorTime = (Rev2mDistanceSensor)x;
         //   Rev2mDistanceSensor sensor1Time = (Rev2mDistanceSensor)x1;
         telemetry.addData(">>", "Start");
         telemetry.update();
-        Trin = hardwareMap.crservo.get("Trin");
-        Trin1=hardwareMap.crservo.get("Trin1");
 
 
         //leftDrive = front left motor
@@ -64,61 +65,69 @@ public class MechanumDrive extends EncoderTest2 {
         rightDrive = hardwareMap.get(DcMotor.class, "FR");
         leftBackDrive = hardwareMap.get(DcMotor.class, "BL");
         rightBackDrive = hardwareMap.get(DcMotor.class, "BR");
+      intake = hardwareMap.get(DcMotor.class,"IT");
+     shaft = hardwareMap.get(DcMotor.class,"ST");
+     arm = hardwareMap.get(DcMotor.class,"ARM");
+        rightDrive.setDirection(DcMotor.Direction.REVERSE);
+        leftDrive.setDirection(DcMotor.Direction.REVERSE);
 
-
+        leftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         waitForStart();
         runtime.reset();
 
         while (opModeIsActive()) {
 
-            telemetry.addData("Status", "Run Time: " + runtime.toString());
+
+
+
+
+
+            double servoPosition=0.0;
+            telemetry.addData("RangeFront",x.getDistance(DistanceUnit.INCH));
+
             telemetry.update();
 
+            if(gamepad1.x){
+                claw.setPosition(0.5);
+            }
+            else{
+                claw.setPosition(0.0);
+            }
 
-            //Calculations for motor power
-            double r = Math.hypot(-gamepad1.left_stick_x, -gamepad1.left_stick_y);
-            double robotAngle = Math.atan2(-gamepad1.left_stick_y, gamepad1.left_stick_x) - Math.PI / 4;
-            double rotate = -gamepad1.right_stick_x;
-            final double frontLeft = -r * Math.cos(robotAngle) + rotate;
-            final double frontRight = r * Math.sin(robotAngle) + rotate;
-            final double rearLeft = -r * Math.sin(robotAngle) + rotate;
-            final double rearRight = r * Math.cos(robotAngle) + rotate;
+
+
+          while (gamepad1.a) {
+              x.getDistance(DistanceUnit.INCH);
+              telemetry.update();
+              if (x.getDistance(DistanceUnit.INCH) >= 38) {
+
+
+                  leftDrive.setPower(-.3);
+                  leftBackDrive.setPower(-.3);
+                    rightBackDrive.setPower(-.3);
+
+                    rightDrive.setPower(.3);
+                  telemetry.update();
+                }
+
+                else if (x.getDistance(DistanceUnit.INCH) <= 38) {
+                    leftDrive.setPower(.3);
+                    leftBackDrive.setPower(.3);
+                    rightBackDrive.setPower(.3);
+
+                    rightDrive.setPower(-.3);
+                  telemetry.update();
+                }
+
+
+
+            }
+
 /*
-
-    //        while (gamepad1.a) {
-      //          x.getDistance(DistanceUnit.INCH);
-      //          if (x.getDistance(DistanceUnit.INCH) >= 36) {
-//Right
-
-             //       leftDrive.setPower(-1.0);
-              //      leftBackDrive.setPower(1.0);
-                    rightBackDrive.setPower(-1.0);
-
-                    rightDrive.setPower(1.0);
-                }
-
-                if (x.getDistance(DistanceUnit.INCH) <= 38) {
-                    leftDrive.setPower(1.0);
-                    leftBackDrive.setPower(-1.0);
-                    rightBackDrive.setPower(1.0);
-
-                    rightDrive.setPower(-1.0);
-
-                }
-                else{
-                    leftDrive.setPower(0);
-                    leftBackDrive.setPower(0);
-                    rightBackDrive.setPower(0);
-
-                    rightDrive.setPower(0);
-                }
-
-
-            }
-
-            while (gamepad1.right_bumper) {
-                Trin.setPower(1.0);
-            }
 
             while (gamepad1.x) {
 
@@ -136,56 +145,95 @@ public class MechanumDrive extends EncoderTest2 {
 
             }
 
-*/
-            if (gamepad1.right_bumper) {
-                Trin.setPower(2.0);
 
+          if (gamepad1.x){
+                servoPosition = 0.5;
+            }
+            if(gamepad1.y){
+                servoPosition= 1.0;
+            }
+            else{
+                servoPosition=0.0;
+            }
+
+         */
+double armPower;
+            if (gamepad1.right_bumper){
+                shaft.setPower(1.0);
             }
             if(gamepad1.left_bumper){
-                Trin1.setPower(2.0);
+                intake.setPower(1.0);
             }
 
-            if(gamepad1.y){
-                Trin1.setPower(0);
-            }
-
-            else {
-                Trin.setPower(0);
-
-            }
                 if (gamepad1.b) {
-                    player1.start();
-
-                } else {
-                    player1.pause();
-                }
-
-                if (gamepad1.left_stick_x != 0 || gamepad1.left_stick_y != 0 || gamepad1.right_stick_x != 0) {
-                    if (gamepad1.left_stick_x > 0.1 || gamepad1.left_stick_x < 0.1) {
-                        //Motor Power Sets
-                        leftDrive.setPower(frontLeft);
-                        telemetry.addData("Power FrontLeft", frontLeft);
-                        rightDrive.setPower(frontRight);
-                        telemetry.addData("Power FrontRight", frontRight);
-                        leftBackDrive.setPower(rearLeft);
-                        telemetry.addData("Power rearLeft", rearLeft);
-                        rightBackDrive.setPower(rearRight);
-                        telemetry.addData("Power rearRight", rearRight);
-                        telemetry.update();
-                    } else {
-                        //Motor Power Sets
-                        leftDrive.setPower(frontLeft / slowModeValue);
-                        rightDrive.setPower(frontRight / slowModeValue);
-                        leftBackDrive.setPower(rearLeft / slowModeValue);
-                        rightBackDrive.setPower(rearRight / slowModeValue);
-                    }
-                } else {
-                    leftDrive.setPower(0.005);
-                    rightDrive.setPower(0.005);
-                    leftBackDrive.setPower(0.005);
-                    rightBackDrive.setPower(0.005);
+                   armPower= (0.01);
 
                 }
+                else if (gamepad1.y){
+                    armPower=(-0.01);
+                }
+                else {
+                  armPower=(0.0);
+                }
+
+
+
+            //Driving
+            double leftstickx = 0;
+            double leftsticky = 0;
+            double rightstickx = 0;
+            double wheelpower;
+            double stickangleradians;
+            double rightX;
+            double leftfrontpower;
+            double rightfrontpower;
+            double leftrearpower;
+            double rightrearpower;
+            double dpadpower = .2;
+            double dpadturningpower = .4;
+            double speedmodifier = 1;
+
+            if (gamepad1.right_bumper) {
+                speedmodifier = .5;
+            }
+            if (gamepad1.left_bumper) {
+                speedmodifier = 1;
+            }
+
+            if (gamepad1.dpad_up) {
+                leftsticky = dpadpower;
+            } else if (gamepad1.dpad_right) {
+                leftstickx = dpadturningpower;
+            } else if (gamepad1.dpad_down) {
+                leftsticky = -dpadpower;
+            } else if (gamepad1.dpad_left) {
+                leftstickx = -dpadturningpower;
+            } else {
+                leftstickx = gamepad1.left_stick_x * speedmodifier;
+                leftsticky = -gamepad1.left_stick_y * speedmodifier;
+                rightstickx = gamepad1.right_stick_x * speedmodifier;
+            }
+            if (Math.abs(leftsticky) <= .15) {
+                leftsticky = 0;
+            }
+            wheelpower = Math.hypot(leftstickx, leftsticky);
+            stickangleradians = Math.atan2(leftsticky, leftstickx);
+
+            stickangleradians = stickangleradians - Math.PI / 4; //adjust by 45 degrees
+
+            rightX = rightstickx * 1;
+            leftfrontpower = (wheelpower * Math.cos(stickangleradians) + rightX) ;
+            rightfrontpower = (wheelpower * Math.sin(stickangleradians) - rightX) ;
+            leftrearpower = (wheelpower * Math.sin(stickangleradians) + rightX) ;
+            rightrearpower = (wheelpower * Math.cos(stickangleradians) - rightX);
+
+            leftDrive.setPower(-leftfrontpower);
+            rightDrive.setPower(-rightfrontpower);
+            leftBackDrive.setPower(leftrearpower);
+            rightBackDrive.setPower(-rightrearpower);
+            arm.setPower(armPower);
+                 telemetry.update();
+
 
 
             }
